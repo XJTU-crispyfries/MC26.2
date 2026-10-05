@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>生电服 · 状态与里程碑</title>
+
+<meta name="theme-color" content="#1b1b1f">
+<meta name="description" content="Minecraft 生电服服务器状态与生电进度里程碑">
+
+<link rel="preload" href="fonts/fusion-pixel-12px-proportional-sc.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ================= 服务器状态 ================= -->
+  <header class="page-head">
+    <h1 class="page-title">
+      <span class="page-title__block"></span>
+      <span id="server-label">生电服</span>
+    </h1>
+  </header>
+
+  <section class="status-card is-loading" id="status-card" aria-live="polite">
+    <div class="status-card__main">
+      <div class="status-light" aria-hidden="true"></div>
+      <div class="status-card__left">
+        <div class="status-headline" id="status-headline">查询中…</div>
+        <div class="status-address" id="status-address">—</div>
+      </div>
+
+      <div class="status-card__stats">
+        <div class="stat">
+          <span class="stat__value" id="status-players">—</span>
+          <span class="stat__label" id="status-players-label">在线人数</span>
+        </div>
+        <div class="stat">
+          <span class="stat__value" id="status-version">—</span>
+          <span class="stat__label">版本</span>
+        </div>
+      </div>
+
+      <button class="btn btn--icon" id="status-refresh" type="button" title="立即刷新">刷新</button>
+    </div>
+
+    <p class="status-motd" id="status-motd"></p>
+
+    <div class="status-card__foot">
+      最后检测：<span id="status-checked">—</span>
+    </div>
+  </section>
+
+  <!-- 配置致命错误时显示在最上面 -->
+  <div class="fatal-banner" id="fatal-banner" style="display:none"></div>
+
+  <!-- ================= 里程碑时间轴 ================= -->
+  <div class="section-head">
+    <h2 class="section-title">生电里程碑</h2>
+    <div class="section-head__actions">
+      <button class="btn btn--ghost" id="timeline-refresh" type="button">刷新</button>
+      <button class="btn btn--primary" id="global-add" type="button">＋ 新建</button>
+    </div>
+  </div>
+
+  <div class="filter-bar" id="category-filter"></div>
+
+  <div class="timeline-error" id="timeline-error" style="display:none"></div>
+
+  <main class="timeline">
+
+    <section class="zone zone--past" data-era="past">
+      <header class="zone__head">
+        <h3 class="zone__title">
+          过去
+          <span class="zone__count"></span>
+        </h3>
+        <button class="btn-add" data-era="past" type="button" title="在过去新建">＋</button>
+      </header>
+      <div class="zone__list" data-era="past"></div>
+    </section>
+
+    <section class="zone zone--present" data-era="present">
+      <header class="zone__head">
+        <h3 class="zone__title">
+          现在
+          <span class="zone__count"></span>
+        </h3>
+        <button class="btn-add" data-era="present" type="button" title="在现在新建">＋</button>
+      </header>
+      <div class="zone__list" data-era="present"></div>
+    </section>
+
+    <section class="zone zone--future" data-era="future">
+      <header class="zone__head">
+        <h3 class="zone__title">
+          将来
+          <span class="zone__count"></span>
+        </h3>
+        <button class="btn-add" data-era="future" type="button" title="在将来新建">＋</button>
+      </header>
+      <div class="zone__list" data-era="future"></div>
+    </section>
+
+  </main>
+
+  <footer class="page-foot">
+    <p>卡片可以直接拖动：横向拖到别的区段改时间，同一列里上下拖改顺序。</p>
+    <p>服务器状态每 60 秒自动更新，数据来自公开的 Minecraft 服务器列表接口。</p>
+  </footer>
+
+</div>
+
+<div class="toast-root" id="toast-root" aria-live="polite"></div>
+
+<!-- 依赖库全部本地化，不依赖任何 CDN -->
+<script src="vendor/supabase.js"></script>
+<script src="vendor/Sortable.min.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/boot.js"></script>
+<script src="js/gate.js"></script>
+<script src="js/milestones-api.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/timeline.js"></script>
+<script src="js/status.js"></script>
+
+<script>
+(function () {
+  'use strict';
+  var APP = window.APP;
+
+  document.getElementById('server-label').textContent =
+    (window.CONFIG && window.CONFIG.server && window.CONFIG.server.label) || '生电服';
+
+  APP.reportStartup();
+
+  // 状态卡先起来：它不依赖数据库，即使 Supabase 没配好也能用
+  APP.status.start();
+
+  // 网址后面加 ?demo=1 可以加载示例卡片先看排版（不写数据库）
+  if (/[?&]demo=1/.test(location.search)) {
+    var s = document.createElement('script');
+    s.src = 'dev/demo-data.js';
+    s.onload = function () { APP.timeline.start(); };
+    s.onerror = function () {
+      console.error('演示数据没加载出来，请确认 dev/demo-data.js 还在。');
+    };
+    document.body.appendChild(s);
+    return;
+  }
+
+  // 里程碑要等数据库自检完，这样能一次性给出准确的错误提示
+  APP.initDb().then(function (problem) {
+    if (problem && problem.fatal) {
+      // 填了数据库管理密钥：拦在最上面，不再渲染时间轴
+      APP.showFatal(problem);
+      return;
+    }
+    APP.timeline.start();
+  });
+})();
+</script>
+
+</body>
+</html>
