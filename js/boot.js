@@ -42,6 +42,12 @@
       var s = String(msg);
       var lower = s.toLowerCase();
 
+      // 数据库没就绪时，直接转述 boot.js 已经诊断出的原因
+      if (code === 'DB_NOT_READY') {
+        var p = err && err.problem;
+        if (p && p.detail) return p.title + '。' + p.detail;
+        return '数据服务还没就绪，请刷新页面重试。';
+      }
       if (code === '28000' || s.indexOf('群口令') >= 0) {
         return '群口令不正确。';
       }

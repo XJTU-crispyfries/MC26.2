@@ -37,6 +37,16 @@
   function write(fn, attemptsLeft) {
     if (attemptsLeft == null) attemptsLeft = 2;
 
+    // 数据库都没连上时别去问口令 —— 用户输完也是白输，
+    // 而且会撞出 "Cannot read properties of null" 这种看不懂的原生报错。
+    // 直接把 boot.js 里已经诊断好的原因抛出去。
+    if (!APP.db.client) {
+      var e = new Error('数据库未就绪');
+      e.code = 'DB_NOT_READY';
+      e.problem = APP.db.problem();
+      return Promise.reject(e);
+    }
+
     var cached = getPasscode();
 
     return (cached ? Promise.resolve(cached) : APP.gate.ask())

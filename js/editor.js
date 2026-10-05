@@ -284,7 +284,11 @@
       var save = util.el('button', 'btn btn--primary', isEdit ? '保存' : '创建');
       save.type = 'submit';
       actions.appendChild(save);
-      modal.appendChild(actions);
+
+      // 必须挂进 form 里，不能挂在 modal 上：
+      // type="submit" 的按钮只有作为表单后代（或用 form 属性关联）才会真的提交，
+      // 挂在 modal 上就成了兄弟节点，点了没有任何反应，submit 事件永不触发。
+      form.appendChild(actions);
 
       form.addEventListener('submit', function (ev) {
         ev.preventDefault();
