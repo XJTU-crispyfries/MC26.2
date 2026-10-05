@@ -88,11 +88,34 @@ index.html?demo=1
 
   supabaseUrl: 'https://lldognoxfhapyawffust.supabase.co',   // ← Project URL（已填好）
   supabaseKey: 'sb_publishable_xxxxxxxxxxxx',                // ← 填 Publishable key
+
+  supabaseProxyPath: '/sb',   // ← 走同源转发，别删，原因见下面「为什么要转发」
 ```
 
 `supabaseKey` 就是唯一还需要你动手的地方。
 
 保存，刷新页面。里程碑区域应该就能用了。
+
+> ### 为什么要转发（`supabaseProxyPath`）
+>
+> 国内不少网络会**直接掐断到 `supabase.co` 的连接**，手机流量尤其明显。表现是：
+> **电脑上一切正常，手机上却显示「里程碑没数据」**。网页本身打得开（本站域名是通的），
+> 只是读不到数据 —— 于是很容易误判成「数据库被暂停了，要去 Restore」，其实不是。
+>
+> 填上 `/sb` 之后，网页不再直连 supabase.co，而是请求本站自己的 `/sb/*`，
+> 由 Cloudflare 的服务器转给 Supabase。浏览器从此只跟本站域名打交道，
+> supabase.co 通不通就跟前端无关了。转发代码在 `functions/sb/[[path]].js`。
+>
+> **判断是不是这个原因**：电脑正常 + 手机不行 = 基本就是它。
+> 想立刻确认，用手机浏览器打开这个网址，转圈打不开就说明是这个原因：
+>
+> ```
+> https://lldognoxfhapyawffust.supabase.co/rest/v1/
+> ```
+>
+> **本地双击 `index.html` 时转发不生效**（`file://` 没有同源后端可用），
+> 会自动退回直连 —— 所以本地预览时如果网络掐 supabase.co，里程碑区还是会报错，这是正常的，
+> 看线上效果即可。
 
 ### 第 3 步：传到网上（Cloudflare Pages）
 
@@ -151,7 +174,7 @@ git push -u origin main
 | 这填的是项目 ID，不是密钥         | `supabaseKey` 填成了那 20 位小写字母 | 那一行要填 `sb_publishable_` 开头的长串                                       |
 | Supabase 密钥看起来不对           | 密钥复制少了字符                 | 回后台重新完整复制一次                                                              |
 | Supabase URL 不正确               | 网址多了`/rest/v1/` 之类的尾巴 | 只留`https://xxx.supabase.co`                                                     |
-| 连不上数据服务                    | 网络问题，或项目被暂停           | 免费项目**7 天没人访问会自动暂停**，去 Supabase 后台点 **Restore** 唤醒 |
+| 连不上数据服务                    | 当前网络掐断了 supabase.co，或项目被暂停 | **先看是不是「电脑正常、手机不行」** —— 那是网络阻断，不是数据库问题，`supabaseProxyPath` 配好即可。若所有设备都不行，才是免费项目**7 天没人访问自动暂停**，去 Supabase 后台点 **Restore** 唤醒 |
 | 数据库里还没建表                  | `schema.sql` 没执行            | 回第 1 步第 4 点                                                                    |
 | 保存被数据库拒绝                  | 权限没配好                       | 把`schema.sql` 完整重跑一遍（可以重复执行）                                       |
 | 群口令不正确                      | 口令错了，或群主换过             | 问群主要                                                                            |
@@ -185,6 +208,8 @@ js/editor.js        新建 / 编辑 / 删除表单
 js/gate.js          群口令输入框
 js/toast.js         右下角提示
 vendor/             第三方库（已本地化，不依赖 CDN）
+functions/sb/       Cloudflare Pages 转发口，把 /sb/* 转给 Supabase
+                    （用来绕开国内对 supabase.co 的阻断，别删）
 fonts/              像素中文字体 + 许可证
 dev/demo-data.js    示例数据，可直接删掉
 schema.sql          数据库建表脚本
