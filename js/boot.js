@@ -74,8 +74,14 @@
       }
       if (lower.indexOf('failed to fetch') >= 0 || lower.indexOf('networkerror') >= 0
           || lower.indexOf('timeout') >= 0 || lower.indexOf('load failed') >= 0) {
-        return '连不上数据服务。Supabase 免费项目 7 天没有访问会自动暂停，'
-             + '需要去 Supabase 后台点 Restore 唤醒；也可能只是网络问题，稍后重试。';
+        return '连不上数据服务。\n\n'
+             + '最常见的原因是当前网络把 supabase.co 的连接直接掐断了'
+             + '（国内手机流量尤其容易这样）。判断方法：如果电脑上正常、'
+             + '手机上不行，基本就是这个原因，而不是服务器出了问题。\n'
+             + '解决办法是让 js/config.js 里的 supabaseProxyPath 走同源转发'
+             + '（已经配好就不用管）。\n\n'
+             + '另一种可能：Supabase 免费项目 7 天没有访问会被暂停，'
+             + '去后台点 Restore 唤醒即可，数据不会丢。';
       }
       if (code === '23505') {
         return '已经有同名的记录冲突。';
@@ -121,16 +127,43 @@
   /* ---------- 配置校验 ---------- */
 
   APP.checkConfig = function () {
-    var url = String(CONFIG.supabaseUrl || '').trim();
     var key = String(CONFIG.supabaseKey || '').trim();
+    var rawUrl = String(CONFIG.supabaseUrl || '').trim();
+    var proxyPath = String(CONFIG.supabaseProxyPath || '').trim();
+
+    /* ---- 地址 --------------------------------------------------
+     * 优先走本页上的同源转发：国内不少网络（尤其手机流量）会重置到
+     * supabase.co 的连接，而本站域名（Cloudflare Pages）是通的。
+     * 双击打开的 file:// 没有同源后端可用，只能退回直连。
+     * ---------------------------------------------------------- */
+    var url = '';
+    var via = 'direct';
+
+    if (proxyPath && location.protocol !== 'file:') {
+      if (proxyPath.indexOf('//') === 0 || proxyPath.indexOf(':') >= 0) {
+        return {
+          ok: false, fatal: false,
+          title: 'supabaseProxyPath 填错了',
+          detail: '它只能填本页上的路径，比如 /sb。\n\n'
+                + '填成完整网址会把本页变成给所有人白用的公共代理，'
+                + '所以这里拦下了。要改回直连，把它留空即可。',
+        };
+      }
+      if (proxyPath.charAt(0) !== '/') proxyPath = '/' + proxyPath;
+      url = location.origin + proxyPath.replace(/\/+$/, '');
+      via = 'proxy';
+    } else {
+      url = rawUrl;
+    }
 
     if (!url || !key) {
       return {
         ok: false,
         fatal: false,
         title: '数据服务还没配置',
-        detail: '打开 js/config.js，把 supabaseUrl 和 supabaseKey 填上，'
-              + '然后刷新本页。服务器状态卡不受影响，照常可用。',
+        detail: '打开 js/config.js，把 supabaseUrl（或 supabaseProxyPath）'
+              + '和 supabaseKey 填上，然后刷新本页。'
+              + '服务器状态卡不受影响，照常可用。',
       };
     }
 
@@ -139,14 +172,17 @@
       url = 'https://' + url + '.supabase.co';
     }
 
-    // URL 格式：常见错法是连 /rest/v1/ 一起复制了
+    // URL 格式：常见错法是连 /rest/v1/ 一起复制了。
+    // 走转发时地址是本页自己的，这些检查不适用。
     var urlProblem = null;
-    if (url.indexOf('https://') !== 0) {
-      urlProblem = 'supabaseUrl 必须以 https:// 开头。';
-    } else if (url.indexOf('.supabase.co') < 0) {
-      urlProblem = 'supabaseUrl 里没看到 .supabase.co，可能复制错了。';
-    } else if (url.replace(/\/+$/, '') !== url.replace(/^(https:\/\/[^/]+).*$/, '$1')) {
-      urlProblem = 'supabaseUrl 只要域名部分，不要带 /rest/v1/ 之类的路径。';
+    if (via === 'direct') {
+      if (url.indexOf('https://') !== 0) {
+        urlProblem = 'supabaseUrl 必须以 https:// 开头。';
+      } else if (url.indexOf('.supabase.co') < 0) {
+        urlProblem = 'supabaseUrl 里没看到 .supabase.co，可能复制错了。';
+      } else if (url.replace(/\/+$/, '') !== url.replace(/^(https:\/\/[^/]+).*$/, '$1')) {
+        urlProblem = 'supabaseUrl 只要域名部分，不要带 /rest/v1/ 之类的路径。';
+      }
     }
     if (urlProblem) {
       return { ok: false, fatal: false, title: 'Supabase 网址填错了', detail: urlProblem };
@@ -190,7 +226,7 @@
       };
     }
 
-    return { ok: true, url: url.replace(/\/+$/, ''), key: key };
+    return { ok: true, url: url.replace(/\/+$/, ''), key: key, via: via };
   };
 
 
@@ -225,6 +261,10 @@
 
     var client = window.supabase.createClient(cfg.url, cfg.key);
     APP.db.client = client;
+
+    console.info('[数据连接] ' + (cfg.via === 'proxy'
+      ? '走同源转发 ' + cfg.url + '（浏览器不需要直连 supabase.co）'
+      : '直连 ' + cfg.url + '（file:// 本地打开时只能这样）'));
 
     // 探一次表，把各种失败提前暴露出来
     return client.from('milestones').select('id').limit(1).then(function (res) {

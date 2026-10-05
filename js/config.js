@@ -46,9 +46,26 @@ window.CONFIG = {
   supabaseUrl: 'https://lldognoxfhapyawffust.supabase.co',
   supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsZG9nbm94ZmhhcHlhd2ZmdXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExNzU4NDAsImV4cCI6MjEwNjc1MTg0MH0.zADOIASbCF8PdKLcBGs5Mx81IKRliI5b2I3NczmxjwE',
 
+  /* ---------------------------------------------------------
+   * 3. 同源转发（重要，用来绕开国内对 supabase.co 的阻断）
+   * ---------------------------------------------------------
+   * 国内很多网络——尤其是手机流量——会直接重置到 supabase.co 的连接，
+   * 网页报「连不上数据服务」，但电脑上却正常。本站域名在手机上却是通的。
+   *
+   * 填上这个路径后，网页不再直连 supabase.co，而是发到本站自己的
+   * 转发口 /sb/*，由 Cloudflare 的服务器转给 Supabase。
+   * 转发代码在 functions/sb/[[path]].js。
+   *
+   * 留空 = 直连 supabase.co（本地双击打开时必须这样，因为 file:// 没有后端）。
+   *
+   * ⚠️ 只能填本页上的路径，比如 /sb。
+   *    不能填完整网址 —— 那会把本页变成给所有人白用的公共代理。
+   */
+  supabaseProxyPath: '/sb',
+
 
   /* ---------------------------------------------------------
-   * 3. 刷新频率（秒）
+   * 4. 刷新频率（秒）
    * ---------------------------------------------------------
    * 状态接口自身有约 60 秒缓存，填小于 60 没有意义。
    */
