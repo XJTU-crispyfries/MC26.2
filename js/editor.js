@@ -329,12 +329,16 @@
             resolve();
           })
           .catch(function (err) {
-            busy = false;
             save.disabled = false;
             save.textContent = isEdit ? '保存' : '创建';
             if (err && err.__cancelled) return;
             showError(errBox, util.friendlyError(err));
-          });
+          })
+          // busy 是模块级的，所有表单共用。以前只在 catch 里复位，
+          // 保存成功一次之后它就永远停在 true，之后每次点保存都在
+          // 开头的 if (busy) return 处静默退出 —— 表现为「编辑一次
+          // 之后必须刷新页面才能再编辑」。放进 finally，两条路都复位。
+          .finally(function () { busy = false; });
       });
 
       var overlay = makeOverlay(modal);
