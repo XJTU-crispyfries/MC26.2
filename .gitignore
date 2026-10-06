@@ -11,6 +11,9 @@ _t_*.html
 _probe.html
 *.log
 
+# 内部文档，不随网页一起公开
+*.docx
+
 # 注意：js/config.js 不要忽略。
 # 里面填的 Supabase anon key 是公开密钥，本来就该随网页一起发布；
 # 真正的写权限由数据库那边的群口令控制，前端改不动。
