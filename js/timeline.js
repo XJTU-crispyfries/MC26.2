@@ -71,17 +71,6 @@
       body.appendChild(a);
     }
 
-    // 进度
-    var pct = Math.max(0, Math.min(100, Number(m.progress) || 0));
-    var progWrap = util.el('div', 'progress');
-    var bar = util.el('i', 'progress__bar');
-    bar.style.width = pct + '%';
-    progWrap.appendChild(bar);
-    var progLine = util.el('div', 'card__progress');
-    progLine.appendChild(progWrap);
-    progLine.appendChild(util.el('span', 'card__pct', pct + '%'));
-    body.appendChild(progLine);
-
     body.addEventListener('click', function () { APP.editor.openEdit(m); });
     body.addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter' || ev.key === ' ') {

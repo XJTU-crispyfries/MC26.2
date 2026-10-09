@@ -450,37 +450,6 @@ h1, h2, h3 { margin: 0; font-weight: 400; line-height: 1.4; }
   color: var(--ink-faint);
 }
 
-.card__progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-/* 进度条：像经验条 */
-.progress {
-  flex: 1;
-  height: 10px;
-  background: #171a1f;
-  border: 2px solid var(--edge-dark);
-  overflow: hidden;
-}
-
-.progress__bar {
-  display: block;
-  height: 100%;
-  background: var(--green);
-  transition: width .2s;
-}
-
-.card__pct {
-  color: var(--ink-faint);
-  font-size: 12px;
-  flex: none;
-  min-width: 34px;
-  text-align: right;
-}
-
 /* 拖拽中的状态 */
 .card--ghost    { opacity: .35; }
 .card--dragging { opacity: .95; }
@@ -618,27 +587,6 @@ h1, h2, h3 { margin: 0; font-weight: 400; line-height: 1.4; }
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   margin-top: 6px;
-}
-
-.progress-field {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.progress-range {
-  flex: 1;
-  accent-color: var(--green);
-  height: 20px;
-}
-
-.input--num { width: 72px; flex: none; }
-
-.progress-pct {
-  color: var(--ink-dim);
-  flex: none;
-  min-width: 40px;
-  text-align: right;
 }
 
 .form-error {

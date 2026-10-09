@@ -177,40 +177,6 @@
       var authorIn = input('text', 'author', data.author, '谁设计或建造的');
       form.appendChild(field('创作来源 / 作者', authorIn));
 
-      // 进度
-      var prog = util.el('div', 'progress-field');
-      var progRange = document.createElement('input');
-      progRange.type = 'range';
-      progRange.min = '0';
-      progRange.max = '100';
-      progRange.step = '5';
-      progRange.value = data.progress == null ? 0 : data.progress;
-      progRange.className = 'progress-range';
-      var progNum = input('number', 'progress', data.progress == null ? 0 : data.progress);
-      progNum.min = '0';
-      progNum.max = '100';
-      progNum.className = 'input input--num';
-      var pct = util.el('span', 'progress-pct', progRange.value + '%');
-
-      progRange.addEventListener('input', function () {
-        progNum.value = progRange.value;
-        pct.textContent = progRange.value + '%';
-      });
-      progNum.addEventListener('input', function () {
-        var v = Math.max(0, Math.min(100, Number(progNum.value) || 0));
-        progRange.value = v;
-        pct.textContent = v + '%';
-      });
-
-      prog.appendChild(progRange);
-      prog.appendChild(progNum);
-      prog.appendChild(pct);
-
-      var progWrap = util.el('div', 'field');
-      progWrap.appendChild(util.el('span', 'field__label', '进度'));
-      progWrap.appendChild(prog);
-      form.appendChild(progWrap);
-
       // 区段（拖拽之外的另一条路，也方便手机上精确改）
       var eraSel = document.createElement('select');
       eraSel.className = 'input';
@@ -316,7 +282,6 @@
           coord_z: zIn.value.trim(),
           author: authorIn.value.trim(),
           category: catIn.value.trim(),
-          progress: String(Math.max(0, Math.min(100, Number(progNum.value) || 0))),
           era: eraSel.value,
         };
         if (isEdit) payload.id = data.id;
@@ -363,7 +328,7 @@
     var start = era ? Promise.resolve(era) : askEra();
     return start
       .then(function (chosen) {
-        return openForm({ era: chosen, dimension: 'overworld', progress: 0 });
+        return openForm({ era: chosen, dimension: 'overworld' });
       })
       .catch(function (err) {
         if (!err || !err.__cancelled) {
